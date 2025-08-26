@@ -34,6 +34,14 @@ const Index = () => {
     error: moviesError,
   } = useFetch(() => fetchMovies({ query: "" }));
 
+  // Deduplicate trending movies and filter undefined
+  const uniqueTrendingMovies = trendingMovies
+    ? trendingMovies.filter(
+        (movie, index, self) =>
+          movie && index === self.findIndex((m) => m.movie_id === movie?.movie_id)
+      )
+    : [];
+
   return (
     <View className="flex-1 bg-primary">
       <Image
@@ -60,13 +68,11 @@ const Index = () => {
         ) : (
           <View className="flex-1 mt-5">
             <SearchBar
-              onPress={() => {
-                router.push("/search");
-              }}
+              onPress={() => router.push("/search")}
               placeholder="Search for a movie"
             />
 
-            {trendingMovies && (
+            {uniqueTrendingMovies.length > 0 && (
               <View className="mt-10">
                 <Text className="text-lg text-white font-bold mb-3">
                   Trending Movies
@@ -74,29 +80,26 @@ const Index = () => {
                 <FlatList
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  className="mb-4 mt-3"
-                  data={trendingMovies}
-                  contentContainerStyle={{
-                    gap: 26,
-                  }}
-                  renderItem={({ item, index }) => (
-                    <TrendingCard movie={item} index={index} />
-                  )}
-                  keyExtractor={(item) => item.movie_id.toString()}
+                  data={uniqueTrendingMovies}
+                  contentContainerStyle={{ gap: 26 }}
+                  renderItem={({ item, index }) =>
+                    item ? <TrendingCard movie={item} index={index} /> : null
+                  }
+                  keyExtractor={(item, index) => item?.$id ?? index.toString()}
                   ItemSeparatorComponent={() => <View className="w-4" />}
                 />
               </View>
             )}
 
-            <>
+            <View>
               <Text className="text-lg text-white font-bold mt-5 mb-3">
                 Latest Movies
               </Text>
 
               <FlatList
                 data={movies}
-                renderItem={({ item }) => <MovieCard {...item} />}
-                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => item && <MovieCard {...item} />}
+                keyExtractor={(item, index) => item?.id?.toString() ?? index.toString()}
                 numColumns={3}
                 columnWrapperStyle={{
                   justifyContent: "flex-start",
@@ -107,7 +110,7 @@ const Index = () => {
                 className="mt-2 pb-32"
                 scrollEnabled={false}
               />
-            </>
+            </View>
           </View>
         )}
       </ScrollView>
